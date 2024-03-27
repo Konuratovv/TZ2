@@ -1,0 +1,54 @@
+version: '3'
+
+services:
+  web:
+    build: .
+    container_name: TZ
+    command: sh -c "gunicorn core.wsgi:application --bind 0.0.0.0:8000"
+    restart: always
+    volumes:
+      - .:/app
+      - static_volume:/usr/src/app/static
+      - media_volume:/usr/src/app/back_media
+
+
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - migration
+
+
+  postgres:
+    image: postgres
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_DB: myproject
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: newpass13
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+
+  migration:
+    build: .
+    command: sh -c "python manage.py makemigrations && python manage.py migrate"
+    depends_on:
+      - postgres
+
+  nginx:
+    container_name: TZ_nginx
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - static_volume:/usr/src/app/static
+    depends_on:
+      - web
+    
+volumes:
+  static_volume:
+  media_volume:
+  postgres_data:
